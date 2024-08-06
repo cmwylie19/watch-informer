@@ -49,13 +49,13 @@ func (s *server) StartWatch(ctx context.Context, req *api.WatchRequest) (*api.Wa
 
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			eventChan <- &api.ResourceEvent{EventType: "ADD", Details: fmt.Sprintf("Added: %v", obj)}
+			eventChan <- &api.ResourceEvent{EventType: "ADD", Details: fmt.Sprintf("%v", obj)}
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			eventChan <- &api.ResourceEvent{EventType: "UPDATE", Details: fmt.Sprintf("Updated from %v to %v", oldObj, newObj)}
+		UpdateFunc: func(_, newObj interface{}) {
+			eventChan <- &api.ResourceEvent{EventType: "UPDATE", Details: fmt.Sprintf("%v", newObj)}
 		},
 		DeleteFunc: func(obj interface{}) {
-			eventChan <- &api.ResourceEvent{EventType: "DELETE", Details: fmt.Sprintf("Deleted: %v", obj)}
+			eventChan <- &api.ResourceEvent{EventType: "DELETE", Details: fmt.Sprintf("%v", obj)}
 		},
 	})
 
@@ -97,7 +97,7 @@ func StartGRPCServer(address string, dynamicClient dynamic.Interface, group, ver
 	api.RegisterWatcherServer(grpcServer, s)
 	reflection.Register(grpcServer)
 
-	// Optionally start watching a resource if configured via CLI
+	// Optionalfor CLI
 	if group != "" && version != "" && resource != "" {
 		_, err := s.StartWatch(context.Background(), &api.WatchRequest{
 			Group:     group,
