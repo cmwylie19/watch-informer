@@ -31,12 +31,14 @@ mockgen -destination=mocks/mock_watchevents.go -package=mocks watch-informer/api
 go test ./...  
 ```
 
-## Usage  
+## Generic Usage  
 
 Server  
 
 ```bash
 go run main.go --group "" --version "v1" --resource "pods" --namespace "default"
+
+go run main.go
 ```
 
 
@@ -56,9 +58,26 @@ grpcurl -plaintext localhost:50051 describe api.Watcher.[StartWatch/WatchEvents]
 grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pods", "namespace": "default"}' \
     localhost:50051 <service-name>.<method-name>
 
-grpcurl -plaintext -d '{"session_id": "-v1-pods"}' \
-localhost:50051 api.Watcher.WatchEvents
+```
 
+
+## Usage 
+
+Server
+
+```bash
+go run main.go
+```
+
+Client
+
+```bash
+# Configure the server
 grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pods", "namespace": "default"}' \
 localhost:50051 api.Watcher.StartWatch
+
+# Start the watch 
+grpcurl -plaintext -d '{"session_id": "-v1-pods"}' \
+localhost:50051 api.Watcher.WatchEvents
 ```
+
