@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -35,6 +36,7 @@ func NewServer(dynamicClient dynamic.Interface, logger logging.LoggerInterface) 
 		Logger:        logger,
 	}
 }
+
 func toJson(obj interface{}) string {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
@@ -42,6 +44,7 @@ func toJson(obj interface{}) string {
 	}
 	return fmt.Sprintf("%v", string(jsonData))
 }
+
 func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) error {
 	req.Resource = fmt.Sprint(strings.ToLower(req.Resource), "s")
 	req.Group = strings.TrimPrefix(req.Group, "/")
@@ -51,55 +54,48 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 		Resource: req.Resource,
 	}
 
-	// Check if namespace is provided, else watch all namespaces
-	// if req.Namespace == "" {
-	// 	req.Namespace = "all"
-	// }
 	sessionId := fmt.Sprintf("%s-%s-%s-%s", req.Group, req.Version, req.Resource, req.Namespace)
 	s.Logger.Info(fmt.Sprintf("Starting watch for %s", sessionId))
 	s.Logger.Debug(fmt.Sprintf("GVR: %v", gvr))
-	// Initialize informer factory with a check for the dynamic client
+
 	if s.dynamicClient == nil {
 		return fmt.Errorf("dynamic client is not initialized")
 	}
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(s.dynamicClient, 5*time.Minute, req.Namespace, nil)
 	informer := factory.ForResource(gvr).Informer()
 
-	// Create and register an event channel
 	eventChan := make(chan *api.WatchResponse, 100)
 	s.mu.Lock()
 	s.eventChans[sessionId] = eventChan
 	s.mu.Unlock()
 
-	// Set up event handlers
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			s.Logger.Debug(fmt.Sprintf("EventType: ADD, Details: %v", obj))
+			s.Logger.Debug(fmt.Sprintf("EventType: ADD, Details: %v", toJson(obj)))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "ADD", Details: fmt.Sprintf("%v", toJson(obj))}:
+			case eventChan <- &api.WatchResponse{EventType: "ADD", Details: toJson(obj)}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
 		},
 		UpdateFunc: func(_, newObj interface{}) {
-			s.Logger.Debug(fmt.Sprintf("EventType: UPDATE, Details: %v", newObj))
+			s.Logger.Debug(fmt.Sprintf("EventType: UPDATE, Details: %v", toJson(newObj)))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "UPDATE", Details: fmt.Sprintf("%v", toJson(newObj))}:
+			case eventChan <- &api.WatchResponse{EventType: "UPDATE", Details: toJson(newObj)}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
-			s.Logger.Debug(fmt.Sprintf("EventType: DELETE, Details: %v", obj))
+			s.Logger.Debug(fmt.Sprintf("EventType: DELETE, Details: %v", toJson(obj)))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "DELETE", Details: fmt.Sprintf("%v", toJson(obj))}:
+			case eventChan <- &api.WatchResponse{EventType: "DELETE", Details: toJson(obj)}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
 		},
 	})
 
-	// Start the informer and handle any potential panics
 	defer func() {
 		if r := recover(); r != nil {
 			s.Logger.Error(fmt.Sprint("Recovered in StartWatch", r))
@@ -115,12 +111,21 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 			}
 		}
 	}()
-	// Wait for the channel to close or the context to be canceled
 	<-srv.Context().Done()
 	return srv.Context().Err()
 }
 
-func StartGRPCServer(address string, dynamicClient dynamic.Interface, logger logging.LoggerInterface) {
+func StartGRPCServer(address string, logger logging.LoggerInterface) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatalf("Error creating in-cluster config: %v", err)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("Error creating dynamic client: %v", err)
+	}
+
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)

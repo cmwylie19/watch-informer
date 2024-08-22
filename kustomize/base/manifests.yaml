@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: watch-informer
+spec: {}
+status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: watch-informer
+  namespace: watch-informer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: watch-informer
+  name: watch-informer
+  namespace: watch-informer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: watch-informer
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: watch-informer
+    spec:
+      serviceAccountName: watch-informer
+      containers:
+      - image: watch-informer
+        name: watch-informer 
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50051
+        resources: {}
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: watch-informer
+  name: watch-informer
+  namespace: watch-informer
+spec:
+  ports:
+  - port: 50051
+    protocol: TCP
+    targetPort: 50051
+  selector:
+    app: watch-informer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: watch-informer-cr
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/status
+  verbs:
+  - get
+  - list
+  - delete
+  - create
+  - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: watch-informer-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: watch-informer-cr
+subjects:
+- kind: ServiceAccount
+  name: watch-informer
+  namespace: watch-informer

@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: watch-informer
+  name: watch-informer
+  namespace: watch-informer
+spec:
+  template:
+    spec:
+      containers:
+      - image: watch-informer:prod
+        name: watch-informer 
