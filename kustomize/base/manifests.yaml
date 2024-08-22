@@ -34,6 +34,7 @@ spec:
       - image: watch-informer
         name: watch-informer 
         imagePullPolicy: IfNotPresent
+        args: ["--log-level=debug"]
         ports:
         - containerPort: 50051
         resources: {}

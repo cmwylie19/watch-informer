@@ -32,6 +32,13 @@ deploy-dev:
 	kind load docker-image watch-informer:dev
 	kubectl apply -k kustomize/overlays/dev
 
+curl-dev:
+	docker build -t curler:ci -f hack/Dockerfile hack/
+	kind load docker-image curler:ci
+	kubectl apply -f hack/
+	kubectl wait --for=condition=ready pod -n watch-informer -l app=curler
+	kubectl exec -it curler -n watch-informer -- grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pod", "namespace": "watch-informer"}' watch-informer.watch-informer.svc.cluster.local:50051 api.WatchService.Watch | jq
+
 clean-dev:
 	kind delete cluster --name kind
 	docker system prune -a -f

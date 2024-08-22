@@ -1,16 +1,26 @@
 # Watch Informer
 
+- [Watch Informer](#watch-informer)
+  - [Usage](#usage)
+  - [Generate the Protocol Buffers](#generate-the-protocol-buffers)
+  - [Generate Mocks](#generate-mocks)
+  - [Test](#test)
+  - [Generic Usage](#generic-usage)
+  
 A simple gRPC server that watches for Kubernetes resources and streams events to clients.
 
-## Prereqs
 
-Go Plugins for Protocol Buffers and tests
+## Usage
+
+Bring up a dev cluster with application deployed  
+```bash
+make deploy-dev
+```
+
+Get Events
 
 ```bash
-go get github.com/onsi/ginkgo/ginkgo
-
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+make curl-dev
 ```
 
 ## Generate the Protocol Buffers
@@ -22,8 +32,11 @@ protoc --go_out=. --go_opt=paths=source_relative \
 ```
 
 ## Generate Mocks
-
+// go list -m -f '{{.Dir}}' k8s.io/client-go
 ```bash
+mockgen -source=/Users/cmwylie19/go/pkg/mod/k8s.io/client-go@v0.31.0/dynamic/interface.go -destination=mocks/mock_dynamic.go -package=mocks k8s.io/client-go/dynamic Interface
+mockgen -source=pkg/server/server.go -destination=mocks/mock_watch_service.go -package=mocks github.com/cmwylie19/watch-informer/api WatchService_WatchServer
+
 mockgen -destination=mocks/mock_api.go -package=mocks github.com/cmwylie19/watch-informer/api WatchService_WatchServer
 mockgen -destination mocks/mock_logging.go -package mocks -source ./pkg/logging/logging.go
 mockgen -source=./api/apiv1.pb.go -destination=./mocks/apiv1.pb.go -package=mocks
@@ -31,8 +44,14 @@ mockgen -source=./api/apiv1.pb.go -destination=./mocks/apiv1.pb.go -package=mock
 
 ## Test 
 
+unit 
 ```bash
-go test ./...  
+make unit test
+```
+
+e2e
+```bash
+make e2e test
 ```
 
 ## Generic Usage  
@@ -40,7 +59,7 @@ go test ./...
 Server  
 
 ```bash
-go run main.go
+go run main.go --in-cluster=false
 ```
 
 
@@ -63,5 +82,8 @@ grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pods", "names
 # Start the watch 
 grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pod", "namespace": "default"}' \
 localhost:50051 api.WatchService.Watch
+
+# Start the watch in cluster
+kubectl exec -it curler -- grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pod", "namespace": "default"}' watch-informer.watch-informer.svc.cluster.local:50051 api.WatchService.Watch
 ```
 
