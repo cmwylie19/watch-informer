@@ -18,156 +18,114 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// WatcherClient is the client API for Watcher service.
+// WatchServiceClient is the client API for WatchService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type WatcherClient interface {
-	StartWatch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (*WatchResponse, error)
-	WatchEvents(ctx context.Context, opts ...grpc.CallOption) (Watcher_WatchEventsClient, error)
+type WatchServiceClient interface {
+	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (WatchService_WatchClient, error)
 }
 
-type watcherClient struct {
+type watchServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewWatcherClient(cc grpc.ClientConnInterface) WatcherClient {
-	return &watcherClient{cc}
+func NewWatchServiceClient(cc grpc.ClientConnInterface) WatchServiceClient {
+	return &watchServiceClient{cc}
 }
 
-func (c *watcherClient) StartWatch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (*WatchResponse, error) {
-	out := new(WatchResponse)
-	err := c.cc.Invoke(ctx, "/api.Watcher/StartWatch", in, out, opts...)
+func (c *watchServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (WatchService_WatchClient, error) {
+	stream, err := c.cc.NewStream(ctx, &WatchService_ServiceDesc.Streams[0], "/api.WatchService/Watch", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *watcherClient) WatchEvents(ctx context.Context, opts ...grpc.CallOption) (Watcher_WatchEventsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Watcher_ServiceDesc.Streams[0], "/api.Watcher/WatchEvents", opts...)
-	if err != nil {
+	x := &watchServiceWatchClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
-	x := &watcherWatchEventsClient{stream}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
-type Watcher_WatchEventsClient interface {
-	Send(*EventRequest) error
-	Recv() (*ResourceEvent, error)
+type WatchService_WatchClient interface {
+	Recv() (*WatchResponse, error)
 	grpc.ClientStream
 }
 
-type watcherWatchEventsClient struct {
+type watchServiceWatchClient struct {
 	grpc.ClientStream
 }
 
-func (x *watcherWatchEventsClient) Send(m *EventRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *watcherWatchEventsClient) Recv() (*ResourceEvent, error) {
-	m := new(ResourceEvent)
+func (x *watchServiceWatchClient) Recv() (*WatchResponse, error) {
+	m := new(WatchResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-// WatcherServer is the server API for Watcher service.
-// All implementations must embed UnimplementedWatcherServer
+// WatchServiceServer is the server API for WatchService service.
+// All implementations must embed UnimplementedWatchServiceServer
 // for forward compatibility
-type WatcherServer interface {
-	StartWatch(context.Context, *WatchRequest) (*WatchResponse, error)
-	WatchEvents(Watcher_WatchEventsServer) error
-	mustEmbedUnimplementedWatcherServer()
+type WatchServiceServer interface {
+	Watch(*WatchRequest, WatchService_WatchServer) error
+	mustEmbedUnimplementedWatchServiceServer()
 }
 
-// UnimplementedWatcherServer must be embedded to have forward compatible implementations.
-type UnimplementedWatcherServer struct {
+// UnimplementedWatchServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedWatchServiceServer struct {
 }
 
-func (UnimplementedWatcherServer) StartWatch(context.Context, *WatchRequest) (*WatchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StartWatch not implemented")
+func (UnimplementedWatchServiceServer) Watch(*WatchRequest, WatchService_WatchServer) error {
+	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
 }
-func (UnimplementedWatcherServer) WatchEvents(Watcher_WatchEventsServer) error {
-	return status.Errorf(codes.Unimplemented, "method WatchEvents not implemented")
-}
-func (UnimplementedWatcherServer) mustEmbedUnimplementedWatcherServer() {}
+func (UnimplementedWatchServiceServer) mustEmbedUnimplementedWatchServiceServer() {}
 
-// UnsafeWatcherServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to WatcherServer will
+// UnsafeWatchServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to WatchServiceServer will
 // result in compilation errors.
-type UnsafeWatcherServer interface {
-	mustEmbedUnimplementedWatcherServer()
+type UnsafeWatchServiceServer interface {
+	mustEmbedUnimplementedWatchServiceServer()
 }
 
-func RegisterWatcherServer(s grpc.ServiceRegistrar, srv WatcherServer) {
-	s.RegisterService(&Watcher_ServiceDesc, srv)
+func RegisterWatchServiceServer(s grpc.ServiceRegistrar, srv WatchServiceServer) {
+	s.RegisterService(&WatchService_ServiceDesc, srv)
 }
 
-func _Watcher_StartWatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WatchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _WatchService_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(WatcherServer).StartWatch(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.Watcher/StartWatch",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WatcherServer).StartWatch(ctx, req.(*WatchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(WatchServiceServer).Watch(m, &watchServiceWatchServer{stream})
 }
 
-func _Watcher_WatchEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(WatcherServer).WatchEvents(&watcherWatchEventsServer{stream})
-}
-
-type Watcher_WatchEventsServer interface {
-	Send(*ResourceEvent) error
-	Recv() (*EventRequest, error)
+type WatchService_WatchServer interface {
+	Send(*WatchResponse) error
 	grpc.ServerStream
 }
 
-type watcherWatchEventsServer struct {
+type watchServiceWatchServer struct {
 	grpc.ServerStream
 }
 
-func (x *watcherWatchEventsServer) Send(m *ResourceEvent) error {
+func (x *watchServiceWatchServer) Send(m *WatchResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *watcherWatchEventsServer) Recv() (*EventRequest, error) {
-	m := new(EventRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// Watcher_ServiceDesc is the grpc.ServiceDesc for Watcher service.
+// WatchService_ServiceDesc is the grpc.ServiceDesc for WatchService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Watcher_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.Watcher",
-	HandlerType: (*WatcherServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "StartWatch",
-			Handler:    _Watcher_StartWatch_Handler,
-		},
-	},
+var WatchService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.WatchService",
+	HandlerType: (*WatchServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "WatchEvents",
-			Handler:       _Watcher_WatchEvents_Handler,
+			StreamName:    "Watch",
+			Handler:       _WatchService_Watch_Handler,
 			ServerStreams: true,
-			ClientStreams: true,
 		},
 	},
 	Metadata: "api/apiv1.proto",

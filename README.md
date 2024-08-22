@@ -19,10 +19,14 @@ protoc --go_out=. --go_opt=paths=source_relative \
 
 ## Generate Mocks
     
-    
+go list -f '{{.Dir}}' k8s.io/client-go/dynamic
 ```bash
-mockgen -destination=mocks/mock_dynamic.go -package=mocks k8s.io/client-go/dynamic Interface
-mockgen -destination=mocks/mock_watchevents.go -package=mocks watch-informer/api Watcher_WatchEventsServer
+
+mockgen -destination=mocks/mock_api.go -package=mocks watch-informer/api WatchService_WatchServer
+
+mockgen -destination=mocks/mock_dynamic.go -package=mocks -source $GOPATH/pkg/mod/k8s.io/client-go@v0.31.0/dynamic/interface.go
+mockgen -destination mocks/mock_logging.go -package mocks -source ./pkg/logging/logging.go
+
 ```
 
 ## Test 
@@ -49,10 +53,10 @@ Client
 grpcurl -plaintext localhost:50051 list
 
 # List methods in a service
-grpcurl -plaintext localhost:50051 list api.Watcher
+grpcurl -plaintext localhost:50051 list api.WatchService
 
 # Describe a method
-grpcurl -plaintext localhost:50051 describe api.Watcher.[StartWatch/WatchEvents]
+grpcurl -plaintext localhost:50051 describe api.WatchService.Watch
 
 # Invoke a method
 grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pods", "namespace": "default"}' \
@@ -74,7 +78,7 @@ Client
 ```bash
 # Configure the server
 grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pods", "namespace": "default"}' \
-localhost:50051 api.Watcher.StartWatch
+localhost:50051 api.WatchService.Watch
 
 # Start the watch 
 grpcurl -plaintext -d '{"session_id": "-v1-pods"}' \
