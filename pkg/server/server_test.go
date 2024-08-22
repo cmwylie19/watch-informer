@@ -13,9 +13,10 @@ func TestNewServer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockLogger := mocks.NewMockLoggerInterface(ctrl))
+	mockLogger := mocks.NewMockLoggerInterface(ctrl)
 	var mockClient dynamic.Interface
 	s := NewServer(mockClient, mockLogger)
+
 	if s == nil {
 		t.Errorf("Expected server object, got nil")
 	}

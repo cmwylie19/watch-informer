@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,8 +35,16 @@ func NewServer(dynamicClient dynamic.Interface, logger logging.LoggerInterface) 
 		Logger:        logger,
 	}
 }
-
+func toJson(obj interface{}) string {
+	jsonData, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Sprintf("Error converting to JSON: %v", err)
+	}
+	return fmt.Sprintf("%v", string(jsonData))
+}
 func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) error {
+	req.Resource = fmt.Sprint(strings.ToLower(req.Resource), "s")
+	req.Group = strings.TrimPrefix(req.Group, "/")
 	gvr := schema.GroupVersionResource{
 		Group:    req.Group,
 		Version:  req.Version,
@@ -42,11 +52,12 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 	}
 
 	// Check if namespace is provided, else watch all namespaces
-	if req.Namespace == "" {
-		req.Namespace = "all"
-	}
+	// if req.Namespace == "" {
+	// 	req.Namespace = "all"
+	// }
 	sessionId := fmt.Sprintf("%s-%s-%s-%s", req.Group, req.Version, req.Resource, req.Namespace)
-
+	s.Logger.Info(fmt.Sprintf("Starting watch for %s", sessionId))
+	s.Logger.Debug(fmt.Sprintf("GVR: %v", gvr))
 	// Initialize informer factory with a check for the dynamic client
 	if s.dynamicClient == nil {
 		return fmt.Errorf("dynamic client is not initialized")
@@ -65,7 +76,7 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 		AddFunc: func(obj interface{}) {
 			s.Logger.Debug(fmt.Sprintf("EventType: ADD, Details: %v", obj))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "ADD", Details: fmt.Sprintf("%v", obj)}:
+			case eventChan <- &api.WatchResponse{EventType: "ADD", Details: fmt.Sprintf("%v", toJson(obj))}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
@@ -73,7 +84,7 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 		UpdateFunc: func(_, newObj interface{}) {
 			s.Logger.Debug(fmt.Sprintf("EventType: UPDATE, Details: %v", newObj))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "UPDATE", Details: fmt.Sprintf("%v", newObj)}:
+			case eventChan <- &api.WatchResponse{EventType: "UPDATE", Details: fmt.Sprintf("%v", toJson(newObj))}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
@@ -81,7 +92,7 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 		DeleteFunc: func(obj interface{}) {
 			s.Logger.Debug(fmt.Sprintf("EventType: DELETE, Details: %v", obj))
 			select {
-			case eventChan <- &api.WatchResponse{EventType: "DELETE", Details: fmt.Sprintf("%v", obj)}:
+			case eventChan <- &api.WatchResponse{EventType: "DELETE", Details: fmt.Sprintf("%v", toJson(obj))}:
 			default:
 				s.Logger.Error("Event channel is full, dropping event")
 			}
