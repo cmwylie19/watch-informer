@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -115,17 +114,7 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 	return srv.Context().Err()
 }
 
-func StartGRPCServer(address string, logger logging.LoggerInterface) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatalf("Error creating in-cluster config: %v", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("Error creating dynamic client: %v", err)
-	}
-
+func StartGRPCServer(address string, dynamicClient dynamic.Interface, logger logging.LoggerInterface) {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -135,7 +124,7 @@ func StartGRPCServer(address string, logger logging.LoggerInterface) {
 	api.RegisterWatchServiceServer(grpcServer, s)
 	reflection.Register(grpcServer)
 
-	s.Logger.Info(fmt.Sprintf("Server listening at %s", address))
+	logger.Info(fmt.Sprintf("Server listening at %s", address))
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

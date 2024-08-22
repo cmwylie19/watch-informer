@@ -1,0 +1,10 @@
+.gitignore
+*.md
+Dockerfile
+Dockerfile.amd
+LICENSE
+Makefile
+.vscode
+hack/
+kustomize/
+mocks/
