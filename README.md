@@ -6,9 +6,8 @@
   - [Generate Mocks](#generate-mocks)
   - [Test](#test)
   - [Generic Usage](#generic-usage)
-  
-A simple gRPC server that watches for Kubernetes resources and streams events to clients.
 
+A simple gRPC server that watches for Kubernetes resources and streams events to clients.
 
 ## Usage
 
