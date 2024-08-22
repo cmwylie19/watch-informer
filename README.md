@@ -22,11 +22,12 @@ protoc --go_out=. --go_opt=paths=source_relative \
 go list -f '{{.Dir}}' k8s.io/client-go/dynamic
 ```bash
 
-mockgen -destination=mocks/mock_api.go -package=mocks watch-informer/api WatchService_WatchServer
+mockgen -destination=mocks/mock_api.go -package=mocks github.com/cmwylie19/watch-informer/api WatchService_WatchServer
 
 mockgen -destination=mocks/mock_dynamic.go -package=mocks -source $GOPATH/pkg/mod/k8s.io/client-go@v0.31.0/dynamic/interface.go
 mockgen -destination mocks/mock_logging.go -package mocks -source ./pkg/logging/logging.go
 
+mockgen -source=./api/apiv1.pb.go -destination=./mocks/apiv1.pb.go -package=mocks
 ```
 
 ## Test 

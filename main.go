@@ -1,7 +1,7 @@
 package main
 
 import (
-	"watch-informer/cmd"
+	"github.com/cmwylie19/watch-informer/cmd"
 )
 
 func main() {

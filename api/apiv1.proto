@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package api;
-option go_package = "github.com/cmwylie19/watch-informer/api;api";
+option go_package = "github.com/cmwylie19/github.com/cmwylie19/watch-informer/api;api";
 
 service WatchService {
     rpc Watch (WatchRequest) returns (stream WatchResponse);

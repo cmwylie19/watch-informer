@@ -5,8 +5,9 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"watch-informer/pkg/logging"
-	"watch-informer/pkg/server"
+
+	"github.com/cmwylie19/watch-informer/pkg/logging"
+	"github.com/cmwylie19/watch-informer/pkg/server"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/dynamic"

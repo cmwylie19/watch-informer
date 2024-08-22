@@ -6,8 +6,9 @@ import (
 	"net"
 	"sync"
 	"time"
-	"watch-informer/api"
-	"watch-informer/pkg/logging"
+
+	"github.com/cmwylie19/watch-informer/api"
+	"github.com/cmwylie19/watch-informer/pkg/logging"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
