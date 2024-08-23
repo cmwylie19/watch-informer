@@ -7,7 +7,21 @@
   - [Test](#test)
   - [Generic Usage](#generic-usage)
 
-A simple gRPC server that watches for Kubernetes resources and streams events to clients.
+A simple gRPC server that watches for Kubernetes resources and streams events to clients. It can be run in or out of cluster (for pepr dev).
+
+```bash
+Starts the watch-informer gRPC server
+
+Usage:
+  watch-informer [flags]
+
+Flags:
+  -h, --help               help for watch-informer
+      --in-cluster         Use in-cluster configuration (default true)
+  -l, --log-level string   Log level (debug, info, error) (default "info")
+```
+
+
 
 ## Usage
 
