@@ -45,8 +45,7 @@ func toJson(obj interface{}) string {
 }
 
 func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) error {
-	req.Resource = fmt.Sprint(strings.ToLower(req.Resource), "s")
-	req.Group = strings.TrimPrefix(req.Group, "/")
+	req = formatRequest(req)
 	gvr := schema.GroupVersionResource{
 		Group:    req.Group,
 		Version:  req.Version,
@@ -128,4 +127,13 @@ func StartGRPCServer(address string, dynamicClient dynamic.Interface, logger log
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
+}
+
+func formatRequest(req *api.WatchRequest) *api.WatchRequest {
+	req.Resource = strings.ToLower(req.Resource)
+	if !strings.HasSuffix(req.Resource, "s") {
+		req.Resource = fmt.Sprint(req.Resource, "s")
+	}
+
+	return req
 }
