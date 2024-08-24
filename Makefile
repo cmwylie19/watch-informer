@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := docker-image
 CI_IMAGE ?= watch-informer:ci
-IMAGE ?= cmwylie19/watch-infomer:v0.0.1
+IMAGE ?= watch-informer:dev
 PROD_IMAGE ?= cmwylie19/watch-informer:prod
 
 build-ci-image:
@@ -8,10 +8,10 @@ build-ci-image:
 build-push-prod-image:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t $(PROD_IMAGE) -f Dockerfile.amd .
 
-build-arm-image: 
+build-dev-image: 
 	docker build -t $(IMAGE) -f Dockerfile .
 
-build-amd-image:
+build-prod-image:
 	docker build -t $(IMAGE) -f Dockerfile.amd .
 
 build-push-arm-image: 
