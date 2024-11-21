@@ -5,10 +5,10 @@ go 1.22.2
 require (
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.34.2
+	github.com/onsi/gomega v1.35.1
 	github.com/spf13/cobra v1.8.1
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.35.1
 	k8s.io/apimachinery v0.31.3
 	k8s.io/client-go v0.31.0
 )
