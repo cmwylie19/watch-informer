@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.35.1
 	github.com/spf13/cobra v1.8.1
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.36.4
 	k8s.io/apimachinery v0.31.3
 	k8s.io/client-go v0.31.3
 )
