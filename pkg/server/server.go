@@ -15,24 +15,30 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
 type server struct {
 	api.UnimplementedWatchServiceServer
-	dynamicClient dynamic.Interface
-	Logger        logging.LoggerInterface
-	eventChans    map[string]chan *api.WatchResponse
-	mu            sync.Mutex
+	dynamicClient   dynamic.Interface
+	config          *rest.Config
+	Logger          logging.LoggerInterface
+	eventChans      map[string]chan *api.WatchResponse
+	mu              sync.Mutex
+	getResourceName func(*rest.Config, string, string, string) (string, error)
 }
 
-func NewServer(dynamicClient dynamic.Interface, logger logging.LoggerInterface) *server {
+func NewServer(dynamicClient dynamic.Interface, restConfig *rest.Config, logger logging.LoggerInterface) *server {
 	return &server{
-		dynamicClient: dynamicClient,
-		eventChans:    make(map[string]chan *api.WatchResponse),
-		Logger:        logger,
+		dynamicClient:   dynamicClient,
+		eventChans:      make(map[string]chan *api.WatchResponse),
+		Logger:          logger,
+		config:          restConfig,
+		getResourceName: getResourceName,
 	}
 }
 
@@ -45,14 +51,17 @@ func toJson(obj interface{}) string {
 }
 
 func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) error {
-	req = formatRequest(req)
+	req, err := s.formatRequest(req)
+	if err != nil {
+		s.Logger.Error(fmt.Sprintf("Failed to format request: %v", err))
+	}
 	gvr := schema.GroupVersionResource{
 		Group:    req.Group,
 		Version:  req.Version,
 		Resource: req.Resource,
 	}
+	sessionId := formatSessionID(req)
 
-	sessionId := fmt.Sprintf("%s-%s-%s-%s", req.Group, req.Version, req.Resource, req.Namespace)
 	s.Logger.Info(fmt.Sprintf("Starting watch for %s", sessionId))
 	s.Logger.Debug(fmt.Sprintf("GVR: %v", gvr))
 
@@ -113,12 +122,12 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 	return srv.Context().Err()
 }
 
-func StartGRPCServer(address string, dynamicClient dynamic.Interface, logger logging.LoggerInterface) {
+func StartGRPCServer(address string, dynamicClient dynamic.Interface, restConfig *rest.Config, logger logging.LoggerInterface) {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
-	s := NewServer(dynamicClient, logger)
+	s := NewServer(dynamicClient, restConfig, logger)
 	grpcServer := grpc.NewServer()
 	api.RegisterWatchServiceServer(grpcServer, s)
 	reflection.Register(grpcServer)
@@ -129,11 +138,58 @@ func StartGRPCServer(address string, dynamicClient dynamic.Interface, logger log
 	}
 }
 
-func formatRequest(req *api.WatchRequest) *api.WatchRequest {
+func (s *server) formatRequest(req *api.WatchRequest) (*api.WatchRequest, error) {
 	req.Resource = strings.ToLower(req.Resource)
-	if !strings.HasSuffix(req.Resource, "s") {
-		req.Resource = fmt.Sprint(req.Resource, "s")
+
+	// Fetch the correct plural name dynamically
+	resourceName, err := s.getResourceName(s.config, req.Group, req.Version, req.Resource)
+	if err != nil {
+		return nil, err
 	}
 
-	return req
+	req.Resource = resourceName
+	return req, nil
+}
+
+func formatSessionID(req *api.WatchRequest) string {
+	var namespace, group string
+	if req.Namespace == "" {
+		namespace = "*"
+	} else {
+		namespace = req.Namespace
+	}
+	if req.Group == "" {
+		group = "''"
+	} else {
+		group = req.Group
+	}
+
+	return fmt.Sprintf("Group: %s, Version: %s, Resource: %s, Namespace: %s", group, req.Version, req.Resource, namespace)
+}
+
+func getResourceName(restConfig *rest.Config, group, version, resource string) (string, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to create discovery client: %w", err)
+	}
+	formattedGV := getFormattedGV(group, version)
+	resourceList, err := discoveryClient.ServerResourcesForGroupVersion(formattedGV)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch resource list: %w", err)
+	}
+
+	for _, apiResource := range resourceList.APIResources {
+		if apiResource.SingularName == resource || apiResource.Name == resource {
+			return apiResource.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("resource not found: %s", resource)
+}
+
+func getFormattedGV(group, version string) string {
+	if group == "" {
+		return version
+	}
+	return fmt.Sprintf("%s/%s", group, version)
 }

@@ -65,7 +65,7 @@ var _ = Describe("E2E Test", func() {
 		It("should produce watch logs from the server", func() {
 			podLogs := getPodLogs(kubeConfigPath)
 			Expect(podLogs).To(ContainSubstring("Server listening at :50051"))
-			Expect(podLogs).To(ContainSubstring("Starting watch for -v1-pods-watch-informer"))
+			Expect(podLogs).To(ContainSubstring("Starting watch for Group: '', Version: v1, Resource: pods, Namespace: watch-informer"))
 			Expect(podLogs).To(ContainSubstring("ADD"))
 			Expect(podLogs).To(ContainSubstring("Pod"))
 		})
