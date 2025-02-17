@@ -160,6 +160,8 @@ func formatSessionID(req *api.WatchRequest) string {
 	}
 	if req.Group == "" {
 		group = "''"
+	} else {
+		group = req.Group
 	}
 
 	return fmt.Sprintf("Group: %s, Version: %s, Resource: %s, Namespace: %s", group, req.Version, req.Resource, namespace)
