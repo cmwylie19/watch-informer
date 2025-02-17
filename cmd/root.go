@@ -69,7 +69,7 @@ var rootCmd = &cobra.Command{
 			logger.SetLevel(slog.LevelInfo) // Default to INFO level
 		}
 
-		server.StartGRPCServer(":50051", dynamicClient, logger)
+		server.StartGRPCServer(":50051", dynamicClient, config, logger)
 	},
 }
 
