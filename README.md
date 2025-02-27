@@ -90,6 +90,19 @@ protoc --go_out=. --go_opt=paths=source_relative \
        api/apiv1.proto
 ```
 
+TypeScript Client Proto files
+
+```bash
+npx grpc_tools_node_protoc \
+  --proto_path=src/api \
+  --plugin=protoc-gen-ts=node_modules/.bin/protoc-gen-ts \
+  --plugin=protoc-gen-grpc=node_modules/.bin/grpc_tools_node_protoc_plugin \
+  --js_out=import_style=commonjs,binary:src/api \
+  --ts_out=src/api \
+  --grpc_out=grpc_js:src/api \
+  src/api/apiv1.proto
+```
+
 ## Generate Mocks
 // go list -m -f '{{.Dir}}' k8s.io/client-go
 ```bash
