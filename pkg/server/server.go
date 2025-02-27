@@ -32,6 +32,7 @@ type server struct {
 	getResourceName func(*rest.Config, string, string, string) (string, error)
 }
 
+// NewServer creates a new server instance
 func NewServer(dynamicClient dynamic.Interface, restConfig *rest.Config, logger logging.LoggerInterface) *server {
 	return &server{
 		dynamicClient:   dynamicClient,
@@ -42,6 +43,7 @@ func NewServer(dynamicClient dynamic.Interface, restConfig *rest.Config, logger 
 	}
 }
 
+// toJson converts an object to a JSON string
 func toJson(obj interface{}) string {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
@@ -50,6 +52,7 @@ func toJson(obj interface{}) string {
 	return fmt.Sprintf("%v", string(jsonData))
 }
 
+// Watch implements the WatchServiceServer interface
 func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) error {
 	req, err := s.formatRequest(req)
 	if err != nil {
@@ -122,6 +125,7 @@ func (s *server) Watch(req *api.WatchRequest, srv api.WatchService_WatchServer) 
 	return srv.Context().Err()
 }
 
+// StartGRPCServer starts the gRPC server
 func StartGRPCServer(address string, dynamicClient dynamic.Interface, restConfig *rest.Config, logger logging.LoggerInterface) {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
@@ -138,6 +142,7 @@ func StartGRPCServer(address string, dynamicClient dynamic.Interface, restConfig
 	}
 }
 
+// formatRequest formats the request to lowercase and fetches the correct plural name
 func (s *server) formatRequest(req *api.WatchRequest) (*api.WatchRequest, error) {
 	req.Resource = strings.ToLower(req.Resource)
 
@@ -151,6 +156,7 @@ func (s *server) formatRequest(req *api.WatchRequest) (*api.WatchRequest, error)
 	return req, nil
 }
 
+// formatSessionID formats the session ID
 func formatSessionID(req *api.WatchRequest) string {
 	var namespace, group string
 	if req.Namespace == "" {
@@ -167,6 +173,7 @@ func formatSessionID(req *api.WatchRequest) string {
 	return fmt.Sprintf("Group: %s, Version: %s, Resource: %s, Namespace: %s", group, req.Version, req.Resource, namespace)
 }
 
+// getResourceName fetches the correct resource name
 func getResourceName(restConfig *rest.Config, group, version, resource string) (string, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
@@ -187,6 +194,7 @@ func getResourceName(restConfig *rest.Config, group, version, resource string) (
 	return "", fmt.Errorf("resource not found: %s", resource)
 }
 
+// getFormattedGV formats the group and version
 func getFormattedGV(group, version string) string {
 	if group == "" {
 		return version
