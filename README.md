@@ -80,6 +80,9 @@ localhost:50051 api.WatchService.Watch
 
 # Start the watch in cluster
 kubectl exec -it curler -- grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pod", "namespace": "default"}' watch-informer.watch-informer.svc.cluster.local:50051 api.WatchService.Watch
+
+grpcurl -plaintext -d '{"group": "", "version": "v1", "resource": "pod", "namespace": "default","sendInitialList": true}' \
+localhost:50051 api.WatchService.Watch
 ```
 
 ## Generate the ProtoBufs

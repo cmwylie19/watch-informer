@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: shared-informer
+  name: shared-informer
+  namespace: pepr-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-informer
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: shared-informer
+    spec:
+      serviceAccountName: pepr-uds-core
+      containers:
+      - image: docker.io/cmwylie19/shared-informer:0.0.0
+        name: watch-informer
+        resources: {}
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: shared-informer
+  name: shared-informer
+  namespace: pepr-system
+spec:
+  ports:
+  - port: 50051
+    protocol: TCP
+    targetPort: 50051
+  selector:
+    app: shared-informer
+status:
+  loadBalancer: {}

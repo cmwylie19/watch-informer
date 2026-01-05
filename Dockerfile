@@ -1,4 +1,4 @@
-FROM golang:1.24.0-alpine3.21 AS builder
+FROM golang:1.25.5-alpine3.23 AS builder
 
 LABEL description="watch-informer" \
       maintainer="Casey Wylie casewylie@gmail.com"
